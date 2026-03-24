@@ -1,0 +1,41 @@
+name: OpenCode Auto Fixer
+
+on:
+  repository_dispatch:
+    types: [opencode_fix]
+
+jobs:
+  fix-bug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Lấy toàn bộ lịch sử để Agent hiểu ngữ cảnh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install OpenCode CLI
+        # Giả sử lệnh cài đặt là npm install
+        run: npm install -g @opencode/cli 
+
+      - name: OpenCode Magic Fix
+        env:
+          # Truyền API Key vào cho Agent
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          # Chạy OpenCode ở chế độ headless (không cần tương tác người dùng)
+          # Lệnh 'fix' hoặc 'task' tùy theo tài liệu của OpenCode
+          opencode run "Sửa lỗi sau: ${{ github.event.client_payload.description }}. Hãy kiểm tra toàn bộ thư mục src/ và sửa trực tiếp vào file." --yes
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "fix: ${{ github.event.client_payload.description }} (by OpenCode)"
+          title: "Auto-fix for ${{ github.event.client_payload.jira_id }}"
+          body: "Ticket: ${{ github.event.client_payload.jira_id }}\nDescription: ${{ github.event.client_payload.description }}"
+          branch: "fix/${{ github.event.client_payload.jira_id }}"
