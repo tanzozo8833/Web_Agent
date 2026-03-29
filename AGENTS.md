@@ -170,3 +170,32 @@ Configured via `browserslist` in package.json:
 3. **react-icons/fa** - FontAwesome icons are in use
 4. **No test files exist** - add `*.test.js` alongside components
 5. **CSS files exist**: `App.css`, `index.css`, `Sidebar.css`
+
+
+## Critical Autonomy Rules (FOR AUTOMATION)
+- **Authority:** You have FULL PERMISSION to edit any files and run any terminal commands.
+- **Non-Interactive Mode:** Do NOT ask for confirmation. Do NOT wait for user input.
+- **Automatic Git Workflow:** After fixing/implementing:
+  1. `git add .`
+  2. `git commit -m "fix: updated as requested"`
+  3. `git push origin HEAD`
+- **Windows Environment:** You are on Windows PowerShell. Use compatible commands.
+- **No confirmation:** Just DO IT.
+
+## Project Structure
+- `src/components/`: UI Components
+- `src/App.js`: Main logic
+- `server.js`: Express Backend (Port 5000)
+
+## Project Overview
+- **Type**: React SPA with Express backend
+- **Stack**: React 19, Express 5, react-router-dom 7
+- **Structure**: standard CRA
+- **Language**: JavaScript (No TypeScript)
+
+## Automated Workflow Rules
+- **No Interaction:** You are running in an automated environment. Do not wait for user confirmation.
+- **Git Branching:** Always ensure you are working on the current branch provided by the system.
+- **Pushing:** After completing the task and verifying the fix, use the `git push` command or the built-in push feature.
+- **Tone:** Keep commit messages concise and professional, starting with "feat:" or "fix:".
+- **Styling:** When asked to change styles (colors, buttons), modify the CSS/SCSS files or Tailwind classes directly in the components.
