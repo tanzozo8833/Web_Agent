@@ -170,3 +170,15 @@ Configured via `browserslist` in package.json:
 3. **react-icons/fa** - FontAwesome icons are in use
 4. **No test files exist** - add `*.test.js` alongside components
 5. **CSS files exist**: `App.css`, `index.css`, `Sidebar.css`
+
+## Automated Workflow Rules
+- **No Interaction:** You are running in an automated environment. Do not wait for user confirmation.
+- **Git Branching:** Always ensure you are working on the current branch provided by the system.
+- **Pushing:** After completing the task and verifying the fix, use the `git push` command or the built-in push feature.
+- **Tone:** Keep commit messages concise and professional, starting with "feat:" or "fix:".
+- **Styling:** When asked to change styles (colors, buttons), modify the CSS/SCSS files or Tailwind classes directly in the components.
+
+## Interaction Rules
+- You are operating in a NON-INTERACTIVE environment.
+- NEVER ask for confirmation before editing files or running terminal commands.
+- ALWAYS fulfill the request completely including git operations (add, commit, push).
