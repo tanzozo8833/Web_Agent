@@ -1,0 +1,54 @@
+.setting-page {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.setting-page h1 {
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.setting-section {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.setting-section h2 {
+  color: #555;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.setting-section label {
+  display: block;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.setting-section input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.setting-section p {
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.setting-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.setting-button:hover {
+  background-color: #0056b3;
+}
