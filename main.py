@@ -34,7 +34,7 @@ def run_opencode_workflow(instruction):
         full_msg = f"{clean_instruction}. Sau khi làm xong, hãy chạy git add, commit và push lên nhánh {branch_name}."
         
         # 3. Model ID - Đảm bảo tên này có trong 'opencode models google'
-        model_id = "google/gemini-2.5-flash" 
+        model_id = "google/gemini-3-flash-preview" 
 
         # 4. Câu lệnh dạng chuỗi (An toàn nhất cho Windows Shell)
         # Bọc full_msg trong dấu ngoặc kép
