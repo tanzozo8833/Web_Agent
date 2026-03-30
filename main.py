@@ -34,7 +34,16 @@ def run_opencode_workflow(instruction):
         
         # 3. CÚ PHÁP ĐÚNG (Rút gọn tối đa)
         # Nếu bạn đã chạy 'opencode config set model ...' trước đó thì không cần -m nữa
-        command = f'opencode run "{full_msg}"'
+        model_id = "google/gemini-2.0-flash" 
+
+    # 2. Cập nhật cấu trúc mảng command
+    # QUAN TRỌNG: Đặt -m TRƯỚC nội dung tin nhắn để tránh lỗi phân tách trên Windows
+        command = [
+            "opencode", 
+            "run", 
+            "-m", model_id,
+            instruction
+        ]
         
         print(f"🛠 Đang gọi lệnh: {command}")
         
