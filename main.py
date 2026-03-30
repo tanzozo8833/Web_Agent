@@ -28,22 +28,17 @@ def run_opencode_workflow(instruction):
         subprocess.run("git checkout main", shell=True)
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         
-        # 2. Chuẩn bị tin nhắn (Không dùng ký tự lạ, không dùng &&)
-        # Nhắc AI tự thực hiện các bước git trong phần mô tả
-        full_msg = f"{instruction}. Sau khi làm xong, hãy chạy git add, commit và push lên nhánh {branch_name}."
+        # 2. Chuẩn bị tin nhắn 
+        # (Lọc bỏ dấu ngoặc kép trong instruction để tránh vỡ chuỗi shell)
+        clean_instruction = instruction.replace('"', "'")
+        full_msg = f"{clean_instruction}. Sau khi làm xong, hãy chạy git add, commit và push lên nhánh {branch_name}."
         
-        # 3. CÚ PHÁP ĐÚNG (Rút gọn tối đa)
-        # Nếu bạn đã chạy 'opencode config set model ...' trước đó thì không cần -m nữa
-        model_id = "google/gemini-2.0-flash" 
+        # 3. Model ID - Đảm bảo tên này có trong 'opencode models google'
+        model_id = "google/gemini-2.5-flash" 
 
-    # 2. Cập nhật cấu trúc mảng command
-    # QUAN TRỌNG: Đặt -m TRƯỚC nội dung tin nhắn để tránh lỗi phân tách trên Windows
-        command = [
-            "opencode", 
-            "run", 
-            "-m", model_id,
-            instruction
-        ]
+        # 4. Câu lệnh dạng chuỗi (An toàn nhất cho Windows Shell)
+        # Bọc full_msg trong dấu ngoặc kép
+        command = f'opencode run -m {model_id} "{full_msg}" '
         
         print(f"🛠 Đang gọi lệnh: {command}")
         
