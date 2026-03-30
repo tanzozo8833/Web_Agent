@@ -24,25 +24,17 @@ jira = JIRA(
 def run_opencode_workflow(instruction):
     branch_name = f"ai-task-{uuid.uuid4().hex[:6]}"
     try:
-        # 1. Reset và tạo nhánh mới
+        # 1. Chuyển nhánh sạch
         subprocess.run("git checkout main", shell=True)
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         
-        # 2. Làm sạch instruction (Xóa dấu ngoặc kép nếu user nhập vào)
-        clean_instruction = instruction.replace('"', '').replace("'", "")
+        # 2. Chuẩn bị tin nhắn (Không dùng ký tự lạ, không dùng &&)
+        # Nhắc AI tự thực hiện các bước git trong phần mô tả
+        full_msg = f"{instruction}. Sau khi làm xong, hãy chạy git add, commit và push lên nhánh {branch_name}."
         
-        # 3. Cấu hình lệnh Git bên trong (Dùng dấu ngoặc đơn cho commit message)
-        git_steps = f"git add . && git commit -m 'fix: update' && git push origin {branch_name}"
-        
-        # 4. Gom lại thành instruction hoàn chỉnh
-        full_msg = f"{clean_instruction}. Sau đó chạy: {git_steps}"
-        
-        # 5. SỬA LẠI CÁCH BỌC CÂU LỆNH (Dùng f-string với dấu ngoặc đơn bên ngoài)
-        # Ép dùng model gemini-2.0-flash (hoặc tên model bạn đã check)
-        model_name = "google/gemini-2.5-flash"
-        
-        # Cách này an toàn nhất trên Windows: bọc tin nhắn trong dấu ngoặc kép " "
-        command = f'opencode run "{full_msg}" -m {model_name} --yes'
+        # 3. CÚ PHÁP ĐÚNG (Rút gọn tối đa)
+        # Nếu bạn đã chạy 'opencode config set model ...' trước đó thì không cần -m nữa
+        command = f'opencode run "{full_msg}"'
         
         print(f"🛠 Đang gọi lệnh: {command}")
         
@@ -56,12 +48,6 @@ def run_opencode_workflow(instruction):
             errors="replace"
         )
         
-        # Kiểm tra thực tế xem có chữ "Options:" (Help menu) không
-        if "Options:" in result.stdout and "run" in result.stdout:
-             # Nếu lỗi, thử in ra stdout để debug
-             print(f"DEBUG OUTPUT: {result.stdout}")
-             return {"success": False, "error": "Cấu pháp lệnh vẫn bị sai. Hãy thử ra lệnh bằng tiếng Anh không dấu.", "branch": branch_name}
-
         return {
             "success": result.returncode == 0,
             "stdout": result.stdout if result.stdout else result.stderr,
