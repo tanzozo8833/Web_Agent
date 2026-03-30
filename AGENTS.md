@@ -12,13 +12,17 @@ This document provides guidance for AI agents operating in this repository.
 ## Project Structure
 
 ```
+## Project Structure
 ├── public/           # Static assets (HTML, icons, manifest)
 ├── src/
 │   ├── components/   # React components
-│   ├── App.js        # Main app component
-│   ├── App.css       # App-specific styles
+|   |  ├── Home.js    # Home UI
+|   |  ├── Sidebar.js # side bar of web
+|   |  ├── Sidebar.css # css of sidebar 
+│   ├── App.js         # Main app component
+│   ├── App.css        # App-specific styles
 │   ├── index.js      # Entry point
-│   └── index.css     # Global styles
+│   ├── index.css      # Global styles
 ├── server.js         # Express backend (port 5000)
 └── package.json
 ```
@@ -182,10 +186,7 @@ Configured via `browserslist` in package.json:
 - **Windows Environment:** You are on Windows PowerShell. Use compatible commands.
 - **No confirmation:** Just DO IT.
 
-## Project Structure
-- `src/components/`: UI Components
-- `src/App.js`: Main logic
-- `server.js`: Express Backend (Port 5000)
+
 
 ## Project Overview
 - **Type**: React SPA with Express backend
