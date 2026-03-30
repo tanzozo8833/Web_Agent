@@ -2,18 +2,17 @@ import os
 import uuid
 import subprocess
 import threading
+import shlex  # Thêm thư viện này
 from flask import Flask, request, jsonify
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from jira import JIRA
 from dotenv import load_dotenv
 
-# Tải biến môi trường
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Cấu hình Clients ---
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
 
@@ -25,18 +24,27 @@ jira = JIRA(
 def run_opencode_workflow(instruction):
     branch_name = f"ai-task-{uuid.uuid4().hex[:6]}"
     try:
-        # 1. Chuyển nhánh
+        # 1. Reset và tạo nhánh mới
+        subprocess.run("git checkout main", shell=True)
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         
-        # 2. Chuẩn bị instruction cực kỳ rõ ràng
-        # Ép OpenCode phải làm xong các bước git cuối cùng
-        full_msg = f"{instruction}. Sau đó hãy chạy 'git add .', 'git commit -m \"fix: {instruction[:30]}\"' và 'git push origin {branch_name}'."
+        # 2. Làm sạch instruction (Xóa dấu ngoặc kép nếu user nhập vào)
+        clean_instruction = instruction.replace('"', '').replace("'", "")
         
-        # SỬA LẠI CÁCH GỌI: Dùng list để tránh lỗi dấu ngoặc kép trên Windows/Linux
-        # Lệnh: opencode run "nội dung"
-        command = ["opencode", "run", full_msg]
+        # 3. Cấu hình lệnh Git bên trong (Dùng dấu ngoặc đơn cho commit message)
+        git_steps = f"git add . && git commit -m 'fix: update' && git push origin {branch_name}"
         
-        print(f"🛠 Đang gọi: {' '.join(command)}")
+        # 4. Gom lại thành instruction hoàn chỉnh
+        full_msg = f"{clean_instruction}. Sau đó chạy: {git_steps}"
+        
+        # 5. SỬA LẠI CÁCH BỌC CÂU LỆNH (Dùng f-string với dấu ngoặc đơn bên ngoài)
+        # Ép dùng model gemini-2.0-flash (hoặc tên model bạn đã check)
+        model_name = "google/gemini-2.5-flash"
+        
+        # Cách này an toàn nhất trên Windows: bọc tin nhắn trong dấu ngoặc kép " "
+        command = f'opencode run "{full_msg}" -m {model_name} --yes'
+        
+        print(f"🛠 Đang gọi lệnh: {command}")
         
         result = subprocess.run(
             command,
@@ -44,13 +52,15 @@ def run_opencode_workflow(instruction):
             text=True,
             shell=True,
             env=os.environ,
-            encoding="utf-8", # THÊM DÒNG NÀY ĐỂ FIX LỖI UNICODE
-            errors="ignore"    # THÊM DÒNG NÀY ĐỂ BỎ QUA KÝ TỰ LỖI
+            encoding="utf-8",
+            errors="replace"
         )
         
-        # Nếu vẫn hiện Help (có chữ "Options:"), nghĩa là lệnh chưa vào được thread xử lý
-        if "Options:" in result.stdout and result.returncode == 0:
-            return {"success": False, "error": "OpenCode không nhận diện được tin nhắn. Hãy kiểm tra lại cú pháp lệnh 'run'.", "branch": branch_name}
+        # Kiểm tra thực tế xem có chữ "Options:" (Help menu) không
+        if "Options:" in result.stdout and "run" in result.stdout:
+             # Nếu lỗi, thử in ra stdout để debug
+             print(f"DEBUG OUTPUT: {result.stdout}")
+             return {"success": False, "error": "Cấu pháp lệnh vẫn bị sai. Hãy thử ra lệnh bằng tiếng Anh không dấu.", "branch": branch_name}
 
         return {
             "success": result.returncode == 0,
@@ -60,10 +70,11 @@ def run_opencode_workflow(instruction):
     except Exception as e:
         return {"success": False, "error": str(e), "branch": branch_name}
 
+# Các hàm log_to_jira, handle_task_in_background giữ nguyên như cũ
+# ... (Phần còn lại của code bạn giữ nguyên)
+
 def log_to_jira(instruction, res):
-    """Tạo ticket Jira và ghi log"""
     project_key = os.getenv("JIRA_PROJECT_KEY")
-    # Thay link repo thật của bạn ở đây
     repo_url = "https://github.com/tanzozo8833/web_agent" 
     branch_url = f"{repo_url}/tree/{res['branch']}"
 
@@ -85,52 +96,34 @@ def log_to_jira(instruction, res):
     return new_issue.key
 
 def handle_task_in_background(event):
-    """Hàm xử lý chính chạy ngầm để không làm Slack bị Timeout"""
     channel_id = event.get("channel")
     raw_text = event.get("text")
-    # Lấy toàn bộ nội dung sau khi mention bot
     user_query = raw_text.split(">")[-1].strip()
     
-    if not user_query:
-        return
+    if not user_query: return
 
-    # Thông báo cho người dùng
     slack_client.chat_postMessage(channel=channel_id, text=f"🚀 Đang bắt đầu xử lý: *{user_query}*...")
-
-    # Chạy OpenCode
     res = run_opencode_workflow(user_query)
 
     if res.get("success"):
-        # Log Jira
         try:
             jira_key = log_to_jira(user_query, res)
-            slack_client.chat_postMessage(
-                channel=channel_id, 
-                text=f"✅ Hoàn tất! Đã tạo ticket *{jira_key}* và push lên nhánh *{res['branch']}*."
-            )
+            slack_client.chat_postMessage(channel=channel_id, text=f"✅ Hoàn tất! Ticket: *{jira_key}*, Nhánh: *{res['branch']}*.")
         except Exception as e:
-            slack_client.chat_postMessage(channel=channel_id, text=f"⚠️ Code đã sửa nhưng lỗi log Jira: {str(e)}")
+            slack_client.chat_postMessage(channel=channel_id, text=f"⚠️ Lỗi log Jira: {str(e)}")
     else:
-        error_info = res.get("error") or res.get("stdout")
-        slack_client.chat_postMessage(channel=channel_id, text=f"❌ OpenCode gặp lỗi: \n`{error_info}`")
+        slack_client.chat_postMessage(channel=channel_id, text=f"❌ OpenCode gặp lỗi: \n`{res.get('error') or res.get('stdout')}`")
 
 @app.route("/slack/events", methods=["POST"])
 def slack_events():
-    # Xác thực request
     if not verifier.is_valid_request(request.get_data(), request.headers):
         return jsonify({"status": "invalid"}), 403
-
     data = request.json
-    if "challenge" in data:
-        return jsonify({"challenge": data["challenge"]})
-
+    if "challenge" in data: return jsonify({"challenge": data["challenge"]})
     event = data.get("event", {})
-    # Kiểm tra nếu là mention và KHÔNG phải là tin nhắn từ chính bot (tránh loop)
     if event.get("type") == "app_mention" and event.get("bot_id") is None:
-        # CHẠY NGẦM: Trả lời Slack 200 ngay lập tức, xử lý tính sau
         thread = threading.Thread(target=handle_task_in_background, args=(event,))
         thread.start()
-        
     return jsonify({"status": "ok"}), 200
 
 if __name__ == "__main__":
