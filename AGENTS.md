@@ -1,202 +1,302 @@
-# AGENTS.md - Codebase Guide
+# AGENTS.md - Root Repository Guide
 
-This document provides guidance for AI agents operating in this repository.
+This document is the **MASTER GUIDE** for AI agents operating in this monorepo. It provides an overview of all applications, initialization instructions, and rules that apply to ALL apps in this repository.
 
-## Project Overview
+---
 
-- **Type**: React SPA with Express backend
-- **Stack**: React 19, Express 5, react-router-dom 7
-- **Structure**: CRA (Create React App) - ejected configuration NOT used
-- **Language**: JavaScript (no TypeScript)
+## 🏠 Repository Overview
 
-## Project Structure
+**Repository Type**: Multi-App Monorepo (React SPA Projects)
+**Location**: `C:\Users\Tan\OneDrive - Hanoi University of Science and Technology\Documents\WebAgent\my-app`
+**Structure**: Each app is a standalone React project with its own `package.json`, `node_modules`, and dependencies.
 
-```
-## Project Structure
-├── public/           # Static assets (HTML, icons, manifest)
-├── src/
-│   ├── components/   # React components
-|   |  ├── Home.js    # Home UI
-|   |  ├── Sidebar.js # side bar of web
-|   |  ├── Sidebar.css # css of sidebar 
-│   ├── App.js         # Main app component
-│   ├── App.css        # App-specific styles
-│   ├── index.js      # Entry point
-│   ├── index.css      # Global styles
-├── server.js         # Express backend (port 5000)
-└── package.json
-```
+---
 
-## Build/Lint/Test Commands
+## 📱 Available Applications
 
+This repository contains the following applications:
+
+### 1. Sidebar App
+| Property | Value |
+|----------|-------|
+| **Folder** | `Sidebar app/` |
+| **Purpose** | Demonstrates a vertical sidebar navigation component |
+| **Stack** | React 19, Express 5, react-router-dom 7 |
+| **React Port** | 3000 |
+| **Backend Port** | 5000 |
+| **Main Components** | Sidebar, Home |
+| **Color Theme** | Dark sidebar with #2c3e50 background |
+| **AGENTS.md** | `Sidebar app/AGENTS.md` |
+
+**Components**:
+- `Sidebar.js` / `Sidebar.css` - Vertical navigation sidebar
+- `Home.js` - Home page content
+- `App.js` - Main app wrapper
+
+---
+
+### 2. Horizontal Navigation Bar App
+| Property | Value |
+|----------|-------|
+| **Folder** | `Horizontal Navigation Bar app/` |
+| **Purpose** | Demonstrates a horizontal navigation bar with interactive components |
+| **Stack** | React 19, Express 5, react-router-dom 7 |
+| **React Port** | 3000 |
+| **Backend Port** | 5001 |
+| **Main Components** | NavBar, Home, Button, Dropdown |
+| **Color Theme** | Blue navigation (#3498db) with gradient header |
+| **AGENTS.md** | `Horizontal Navigation Bar app/AGENTS.md` |
+
+**Components**:
+- `NavBar.js` / `NavBar.css` - Horizontal navigation bar
+- `Home.js` / `Home.css` - Landing page with demos
+- `Button.js` / `Button.css` - Multi-variant buttons (primary, secondary, success, danger)
+- `Dropdown.js` / `Dropdown.css` - Interactive dropdown menu
+
+**Color Palette**:
+| Element | Hex Code |
+|---------|----------|
+| Primary Blue | #3498db |
+| Dark Blue | #2c3e50 |
+| Success Green | #27ae60 |
+| Danger Red | #e74c3c |
+| Light Gray | #ecf0f1 |
+
+---
+
+## 🚀 Initialization Instructions (FOR AGENTS)
+
+### How to Initialize Individual Apps
+
+Each app requires initialization before use. Follow these steps carefully:
+
+#### Step 1: Navigate to App Directory
 ```bash
-# Development
-npm start              # Start React dev server (port 3000)
-node server.js         # Start Express backend (port 5000)
+# For Sidebar App
+cd "Sidebar app"
 
-# Production
-npm run build          # Build optimized bundle to /build
-
-# Testing (Jest + React Testing Library)
-npm test               # Run tests in watch mode
-npm test -- --watchAll=false           # Run tests once (CI mode)
-npm test -- --testPathPattern=Home     # Run single test file matching "Home"
-npm test -- --testNamePattern="renders" # Run tests with name containing "renders"
-npm test -- --coverage                  # Generate coverage report
+# For Horizontal Navigation Bar App
+cd "Horizontal Navigation Bar app"
 ```
 
-### Testing Setup
-
-- **Framework**: Jest (via react-scripts)
-- **Libraries**: @testing-library/react, @testing-library/user-event, @testing-library/jest-dom
-- **Test file pattern**: `*.test.js` or `*.spec.js` (place alongside source files)
-- **Example test structure**:
-  ```javascript
-  import { render, screen } from '@testing-library/react';
-  import userEvent from '@testing-library/user-event';
-  import Home from './Home';
-
-  test('renders heading', () => {
-    render(<Home />);
-    expect(screen.getByRole('heading', { name: /home page/i })).toBeInTheDocument();
-  });
-  ```
-
-## Code Style Guidelines
-
-### JavaScript Conventions
-
-1. **File naming**: PascalCase for components (`Home.js`), camelCase for utilities
-2. **Component naming**: Use PascalCase, match filename
-3. **Imports**: Use double quotes for consistency with CRA defaults
-4. **Prop destructuring**: Prefer in function parameters
-5. **No TypeScript**: Plain JavaScript only
-
-### React Patterns
-
-```javascript
-// ✅ Preferred: functional components with arrow functions
-const Home = () => {
-  return <div>Content</div>;
-};
-
-// ✅ Preferred: named exports + default export
-export const Home = () => { ... };
-export default Home;
-
-// ✅ Preferred: inline styles use double quotes
-<div style={{ display: "flex" }}>
-
-// ❌ Avoid: inline arrow functions in JSX (extract to named functions)
+#### Step 2: Install Dependencies
+```bash
+npm install
 ```
 
-### CSS Conventions
+#### Step 3: Start Development Servers
 
-1. **BEM-lite**: Use lowercase with hyphens (`.sidebar`, `.sidebar-item`)
-2. **Component CSS**: Co-locate with component (e.g., `Sidebar.css` with `Sidebar.js`)
-3. **CSS files**: camelCase naming (`App.css`, `index.css`)
-4. **Classes**: BEM-style (`.sidebar__item`, `.sidebar--active`)
-5. **Inline styles**: Use double quotes, camelCase properties
+**For Sidebar App:**
+```bash
+# Terminal 1: React frontend
+npm start
 
-### Import Conventions
+# Terminal 2: Express backend
+node server.js
+```
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
 
-```javascript
-// ✅ React core
-import React from "react";
+**For Horizontal Navigation Bar App:**
+```bash
+# Terminal 1: React frontend
+npm start
 
-// ✅ Components (relative paths)
-import Sidebar from "./components/Sidebar";
+# Terminal 2: Express backend
+node server.js
+```
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5001
 
-// ✅ Icons (named imports from react-icons/fa)
-import { FaHome, FaUser } from "react-icons/fa";
+#### Step 4: Build for Production
+```bash
+npm run build
+```
+- Output: `/build` folder
+- Ready to deploy
 
-// ✅ CSS (co-located or global)
-import "./Sidebar.css";
-import "./index.css";
+---
+
+### Quick Start Commands Reference
+
+| App | Install | Frontend | Backend | Build |
+|-----|---------|----------|---------|-------|
+| Sidebar app | `cd "Sidebar app" && npm install` | `npm start` (port 3000) | `node server.js` (port 5000) | `npm run build` |
+| Horizontal Navigation Bar app | `cd "Horizontal Navigation Bar app" && npm install` | `npm start` (port 3000) | `node server.js` (port 5001) | `npm run build` |
+
+---
+
+## 📋 Detailed App-Specific Rules
+
+### For Sidebar App
+
+```
+1. ALWAYS read "Sidebar app/AGENTS.md" before working on this app
+2. Backend runs on port 5000 - DO NOT use port 5000 for other purposes
+3. Component files are in: "Sidebar app/src/components/"
+4. CSS files are co-located with components (Sidebar.css with Sidebar.js)
+5. Default route: "/" shows Home page
+6. No test files exist - add *.test.js alongside components if needed
 ```
 
-### Error Handling
+### For Horizontal Navigation Bar App
 
-```javascript
-// ✅ Express backend error handling
-app.get("/", (req, res) => {
-  try {
-    // logic
-    res.json({ data });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+```
+1. ALWAYS read "Horizontal Navigation Bar app/AGENTS.md" before working on this app
+2. Backend runs on port 5001 - DO NOT use port 5001 for other purposes
+3. Component files are in: "Horizontal Navigation Bar app/src/components/"
+4. Available components: NavBar, Home, Button, Dropdown
+5. Button variants: primary (blue), secondary (gray), success (green), danger (red)
+6. Dropdown supports click-outside-to-close behavior
+7. No test files exist - add *.test.js alongside components if needed
 ```
 
-### Naming Conventions
+---
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `HomePage`, `UserDashboard` |
-| Files (components) | PascalCase | `HomePage.js` |
-| Files (utils) | camelCase | `utils.js`, `helpers.js` |
-| CSS classes | kebab-case | `.sidebar-nav`, `.nav-item` |
-| Constants | UPPER_SNAKE | `MAX_RETRIES`, `API_URL` |
-| Variables | camelCase | `userName`, `isLoading` |
-| Functions | camelCase | `handleClick`, `fetchData` |
+## 🎯 Task Routing Rules
 
-## Linting
+When given a task, route it to the correct app:
 
-- **Config**: ESLint extends `react-app` and `react-app/jest`
-- **Enforced by**: react-scripts (no custom .eslintrc)
-- **No Prettier**: Formatter not configured
-- **Run lint**: `npm start` displays errors in console
+| Task Type | Route To |
+|-----------|----------|
+| "Sidebar navigation", "vertical menu", "side bar" | Sidebar app |
+| "Horizontal nav", "top bar", "navbar", "navigation bar" | Horizontal Navigation Bar app |
+| "Buttons", "dropdown", "horizontal components" | Horizontal Navigation Bar app |
+| "Multiple apps", "add new app", "monorepo" | Root level |
+| "Global changes", "affects all apps" | Read ALL AGENTS.md files first |
 
-## Browser Support
+---
 
-Configured via `browserslist` in package.json:
-- Production: `>0.2%, not dead, not op_mini all`
-- Development: Last 1 version of Chrome, Firefox, Safari
+## ⚙️ Global Automation Rules (APPLY TO ALL AGENTS)
 
-## Environment Variables
+### Critical Autonomy Rules
+```
+1. AUTHORITY: You have FULL PERMISSION to edit any files and run any terminal commands
+2. NON-INTERACTIVE: Do NOT ask for confirmation. Do NOT wait for user input
+3. AUTOMATIC GIT WORKFLOW: After fixing/implementing:
+   - git add .
+   - git commit -m "fix: [description]" OR "feat: [description]"
+   - git push origin HEAD
+4. WINDOWS ENVIRONMENT: Use Windows PowerShell compatible commands
+5. NO CONFIRMATION: Just DO IT
+```
 
-- Files: `.env.local`, `.env.development.local`, `.env.production.local`
-- CRA requires `REACT_APP_` prefix for client-side variables
-- Access: `process.env.REACT_APP_*`
+### Workflow Guidelines
+```
+1. BEFORE WORKING: Always check which app the task belongs to
+2. READ DOCS: Read the app-specific AGENTS.md before making changes
+3. IDENTIFY APP: Determine correct app folder from task description
+4. MAKE CHANGES: Edit files within the correct app directory
+5. VERIFY: Run linter/diagnostics to check for errors
+6. TEST: If applicable, run npm test in the app directory
+7. COMMIT: Use git commands in the app directory
+8. PUSH: Push changes to remote repository
+```
 
-## API Backend (server.js)
+---
 
-- **Port**: 5000
-- **CORS**: Enabled for all origins
-- **Endpoint**: `GET /` returns "Backend is running"
+## 🔧 Common Operations
 
-## Important Notes for Agents
+### Adding a New Component to an App
 
-1. **DO NOT run `npm eject`** - irreversibly exposes CRA configs
-2. **Use `react-router-dom` v7** - check compatibility with React 19
-3. **react-icons/fa** - FontAwesome icons are in use
-4. **No test files exist** - add `*.test.js` alongside components
-5. **CSS files exist**: `App.css`, `index.css`, `Sidebar.css`
+1. Navigate to app directory
+2. Read app's AGENTS.md
+3. Create component file (e.g., `MyComponent.js`)
+4. Create co-located CSS (e.g., `MyComponent.css`)
+5. Import and use in parent component
+6. Run diagnostics to check for errors
 
+### Switching Between Apps
 
-## Critical Autonomy Rules (FOR AUTOMATION)
-- **Authority:** You have FULL PERMISSION to edit any files and run any terminal commands.
-- **Non-Interactive Mode:** Do NOT ask for confirmation. Do NOT wait for user input.
-- **Automatic Git Workflow:** After fixing/implementing:
-  1. `git add .`
-  2. `git commit -m "fix: updated as requested"`
-  3. `git push origin HEAD`
-- **Windows Environment:** You are on Windows PowerShell. Use compatible commands.
-- **No confirmation:** Just DO IT.
+When working on a different app:
+```
+1. cd to the new app directory
+2. Read that app's AGENTS.md
+3. Make your changes
+4. Commit from that directory
+```
 
+### Port Conflicts
 
+If you encounter port conflicts:
+- Sidebar app backend: port 5000
+- Horizontal Navigation Bar app backend: port 5001
+- React dev servers can both use port 3000 (run separately)
 
-## Project Overview
-- **Type**: React SPA with Express backend
-- **Stack**: React 19, Express 5, react-router-dom 7
-- **Structure**: standard CRA
-- **Language**: JavaScript (No TypeScript)
+---
 
-## Automated Workflow Rules
-- **No Interaction:** You are running in an automated environment. Do not wait for user confirmation.
-- **Git Branching:** Always ensure you are working on the current branch provided by the system.
-- **Pushing:** After completing the task and verifying the fix, use the `git push` command or the built-in push feature.
-- **Tone:** Keep commit messages concise and professional, starting with "feat:" or "fix:".
-- **Styling:** When asked to change styles (colors, buttons), modify the CSS/SCSS files or Tailwind classes directly in the components.
+## 📁 Directory Structure
+
+```
+my-app/
+├── .github/                      # GitHub workflows
+├── .openclaw/                    # Agent tools configuration
+│   └── tools/
+│       └── devops.yaml
+├── Sidebar app/                  # App 1: Vertical sidebar navigation
+│   ├── public/
+│   ├── src/
+│   │   └── components/
+│   │       ├── Home.js
+│   │       ├── Sidebar.js
+│   │       └── Sidebar.css
+│   ├── server.js                 # Backend on port 5000
+│   ├── package.json
+│   └── AGENTS.md                 # App-specific rules
+├── Horizontal Navigation Bar app/ # App 2: Horizontal navigation bar
+│   ├── public/
+│   ├── src/
+│   │   └── components/
+│   │       ├── NavBar.js
+│   │       ├── NavBar.css
+│   │       ├── Home.js
+│   │       ├── Home.css
+│   │       ├── Button.js
+│   │       ├── Button.css
+│   │       ├── Dropdown.js
+│   │       └── Dropdown.css
+│   ├── server.js                 # Backend on port 5001
+│   ├── package.json
+│   └── AGENTS.md                 # App-specific rules
+└── AGENTS.md                     # THIS FILE - Root master guide
+```
+
+---
+
+## ❓ Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port already in use | Kill the process using that port, or use the other app's port |
+| Module not found | Run `npm install` in the app directory |
+| Changes not showing | Restart the React dev server (`npm start`) |
+| Backend not responding | Check if `node server.js` is running in correct directory |
+| Wrong app modified | Check `git status` and `git diff` to verify changes |
+
+---
+
+## 📞 Important Reminders
+
+1. **ONE APP AT A TIME**: Work on one app per session if possible
+2. **READ AGENTS.MD**: Each app has its own AGENTS.md - always read it first
+3. **PORT AWARENESS**: Different backends use different ports
+4. **COMMIT FROM APP DIR**: When committing, ensure you're in the correct app directory
+5. **NO EJECTING**: Never run `npm eject` in any app
+
+---
+
+## 🔒 Security & Best Practices
+
+```
+1. NEVER commit node_modules/ to git (already in .gitignore)
+2. NEVER expose API keys or secrets in code
+3. Use environment variables (.env files) for sensitive data
+4. CRA requires REACT_APP_ prefix for client-side env vars
+5. Backend ports should remain internal (not exposed in production)
+```
+
+---
+
+**Last Updated**: 2026-04-01
+**Total Apps**: 2
+**Next Task**: Initialize both apps with `npm install`
