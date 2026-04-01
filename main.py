@@ -2,89 +2,122 @@ import os
 import uuid
 import subprocess
 import threading
-import shlex  # Thêm thư viện này
-from flask import Flask, request, jsonify
-from slack_sdk import WebClient
-from slack_sdk.signature import SignatureVerifier
-from jira import JIRA
 from dotenv import load_dotenv
 
+# Slack SDK cho Socket Mode
+from slack_sdk import WebClient
+from slack_sdk.socket_mode import SocketModeClient
+from slack_sdk.socket_mode.response import SocketModeResponse
+from slack_sdk.socket_mode.request import SocketModeRequest
+
+# Jira SDK
+from jira import JIRA
+
+# Tải biến môi trường
 load_dotenv()
 
-app = Flask(__name__)
-
-slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
-verifier = SignatureVerifier(os.getenv("SLACK_SIGNING_SECRET"))
+# --- Cấu hình Clients ---
+# Token xoxb-... dùng để gửi tin nhắn
+slack_web_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
+# Token xapp-... dùng để duy trì kết nối WebSocket
+slack_app_token = os.getenv("SLACK_APP_TOKEN")
 
 jira = JIRA(
     server=os.getenv("JIRA_SERVER"),
     basic_auth=(os.getenv("JIRA_USER_EMAIL"), os.getenv("JIRA_API_TOKEN"))
 )
 
+# --- WORKFLOW: Chạy OpenCode ---
 def run_opencode_workflow(instruction):
     branch_name = f"ai-task-{uuid.uuid4().hex[:6]}"
     try:
-        # 1. Chuyển nhánh sạch
         subprocess.run("git checkout main", shell=True)
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         
-        # 2. Chuẩn bị tin nhắn 
-        # (Lọc bỏ dấu ngoặc kép trong instruction để tránh vỡ chuỗi shell)
-        clean_instruction = instruction.replace('"', "'")
-        full_msg = f"{clean_instruction}. Sau khi làm xong, hãy chạy git add, commit và push lên nhánh {branch_name}."
-        
-        # 3. Model ID - Đảm bảo tên này có trong 'opencode models google'
-        model_id = "google/gemini-3-flash-preview" 
-
-        # 4. Câu lệnh dạng chuỗi (An toàn nhất cho Windows Shell)
-        # Bọc full_msg trong dấu ngoặc kép
-        command = f'opencode run -m {model_id} "{full_msg}" '
-        
-        print(f"🛠 Đang gọi lệnh: {command}")
-        
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            shell=True,
-            env=os.environ,
-            encoding="utf-8",
-            errors="replace"
+        # Thêm yêu cầu OpenCode báo cáo chi tiết ở cuối
+        reporting_template = (
+            "\n\nSau khi hoàn thành, hãy in một đoạn tóm tắt cuối cùng theo đúng định dạng sau:\n"
+            "[REPORT]\n"
+            "App: <tên app bị ảnh hưởng>\n"
+            "Action: <hành động chính ví dụ: Thêm giao diện, Sửa màu...>\n"
+            "Details: <chi tiết các file đã sửa hoặc tạo mới>\n"
+            "Status: <Trạng thái hoàn thành>\n"
+            "[/REPORT]"
         )
         
+        full_msg = f"{instruction}. Sau khi làm xong, hãy git add, commit 'fix: update' và push lên {branch_name}. {reporting_template}"
+        model_id = "google/gemini-3-flash-preview" 
+
+        command = f'opencode run -m {model_id} "{full_msg}"'
+        result = subprocess.run(
+            command, 
+            capture_output=True, 
+            text=True, shell=True, 
+            encoding="utf-8", 
+            errors="replace")
+        
+        # Trích xuất thông tin từ [REPORT] ... [/REPORT]
+        stdout_content = result.stdout
+        report_data = {}
+        if "[REPORT]" in stdout_content:
+            report_section = stdout_content.split("[REPORT]")[1].split("[/REPORT]")[0].strip()
+            for line in report_section.split('\n'):
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    report_data[key.strip().lower()] = value.strip()
+
         return {
-            "success": result.returncode == 0,
-            "stdout": result.stdout if result.stdout else result.stderr,
-            "branch": branch_name
+            "success": result.returncode == 0 and "Options:" not in stdout_content,
+            "stdout": stdout_content,
+            "branch": branch_name,
+            "report": report_data # Chứa thông tin Agent tự phân tích
         }
     except Exception as e:
         return {"success": False, "error": str(e), "branch": branch_name}
 
-# Các hàm log_to_jira, handle_task_in_background giữ nguyên như cũ
-# ... (Phần còn lại của code bạn giữ nguyên)
-
+# --- JIRA: Ghi Log Ticket ---
 def log_to_jira(instruction, res):
     project_key = os.getenv("JIRA_PROJECT_KEY")
     repo_url = "https://github.com/tanzozo8833/web_agent" 
     branch_url = f"{repo_url}/tree/{res['branch']}"
+    
+    # Lấy dữ liệu từ báo cáo của Agent, nếu không có thì để mặc định
+    report = res.get('report', {})
+    app_name = report.get('app', 'N/A').upper()
+    action = report.get('action', 'Update Code')
+    details = report.get('details', 'No details provided')
+    status = report.get('status', 'Completed')
 
+    # 1. Tạo Issue chính
     issue_dict = {
         'project': project_key,
-        'summary': f'[AI-Agent] {instruction[:50]}',
-        'description': f'Yêu cầu: {instruction}\nGitHub Branch: {branch_url}',
+        'summary': f'[AI-AGENT][{app_name}] {action}',
+        'description': (
+            f"h1. 🤖 AI Agent Report\n"
+            f"* *Yêu cầu ban đầu:* {instruction}\n"
+            f"* *App:* {app_name}\n"
+            f"* *Hành động:* {action}\n"
+            f"* *Trạng thái:* {status}\n"
+            f"* *GitHub Branch:* [{res['branch']}|{branch_url}]"
+        ),
         'issuetype': {'name': 'Task'},
+        'labels': ['ai-agent', f'app-{app_name.lower()}']
     }
+    
     new_issue = jira.create_issue(fields=issue_dict)
     
-    comment = (
-        f"✅ *AI đã sửa code xong!*\n"
-        f"* *Nhánh:* `{res['branch']}`\n"
-        f"* *Link:* {branch_url}\n"
-        f"* *Log:* \n{{code}}{res.get('stdout', '')[:800]}{{code}}"
+    # 2. Tạo Comment log chi tiết hơn
+    log_content = (
+        f"h3. 📝 Chi tiết thay đổi\n"
+        f"{details}\n\n"
+        f"h3. 💻 Terminal Full Log\n"
+        f"{{code:bash}}\n{res.get('stdout', '')[-1500:]}\n{{code}}" # Lấy 1500 ký tự cuối của log (thường chứa kết quả)
     )
-    jira.add_comment(new_issue, comment)
+    
+    jira.add_comment(new_issue, log_content)
     return new_issue.key
 
+# --- SLACK: Xử lý Task chạy ngầm ---
 def handle_task_in_background(event):
     channel_id = event.get("channel")
     raw_text = event.get("text")
@@ -92,29 +125,55 @@ def handle_task_in_background(event):
     
     if not user_query: return
 
-    slack_client.chat_postMessage(channel=channel_id, text=f"🚀 Đang bắt đầu xử lý: *{user_query}*...")
+    # Gửi thông báo bắt đầu qua WebClient
+    slack_web_client.chat_postMessage(channel=channel_id, text=f"🚀 *Socket Mode:* Đang xử lý yêu cầu: *{user_query}*...")
+    
     res = run_opencode_workflow(user_query)
 
     if res.get("success"):
         try:
             jira_key = log_to_jira(user_query, res)
-            slack_client.chat_postMessage(channel=channel_id, text=f"✅ Hoàn tất! Ticket: *{jira_key}*, Nhánh: *{res['branch']}*.")
+            slack_web_client.chat_postMessage(
+                channel=channel_id, 
+                text=f"✅ Hoàn tất! Đã tạo ticket *{jira_key}* và push lên nhánh *{res['branch']}*."
+            )
         except Exception as e:
-            slack_client.chat_postMessage(channel=channel_id, text=f"⚠️ Lỗi log Jira: {str(e)}")
+            slack_web_client.chat_postMessage(channel=channel_id, text=f"⚠️ Code đã sửa nhưng lỗi log Jira: {str(e)}")
     else:
-        slack_client.chat_postMessage(channel=channel_id, text=f"❌ OpenCode gặp lỗi: \n`{res.get('error') or res.get('stdout')}`")
+        error_info = res.get("error") or res.get("stdout")
+        slack_web_client.chat_postMessage(channel=channel_id, text=f"❌ OpenCode gặp lỗi: \n`{error_info[:500]}...`")
 
-@app.route("/slack/events", methods=["POST"])
-def slack_events():
-    if not verifier.is_valid_request(request.get_data(), request.headers):
-        return jsonify({"status": "invalid"}), 403
-    data = request.json
-    if "challenge" in data: return jsonify({"challenge": data["challenge"]})
-    event = data.get("event", {})
-    if event.get("type") == "app_mention" and event.get("bot_id") is None:
-        thread = threading.Thread(target=handle_task_in_background, args=(event,))
-        thread.start()
-    return jsonify({"status": "ok"}), 200
+# --- SOCKET MODE LISTENER ---
+def process_slack_event(client: SocketModeClient, req: SocketModeRequest):
+    # Xác nhận với Slack đã nhận được request (để Slack không gửi lại)
+    response = SocketModeResponse(envelope_id=req.envelope_id)
+    client.send_socket_mode_response(response)
 
+    # Nếu là sự kiện Events API (như app_mention)
+    if req.type == "events_api":
+        event = req.payload.get("event", {})
+        # Lọc đúng sự kiện mention và không phải bot tự chat với chính mình
+        if event.get("type") == "app_mention" and event.get("bot_id") is None:
+            # Tạo thread mới để không làm tắc nghẽn WebSocket
+            thread = threading.Thread(target=handle_task_in_background, args=(event,))
+            thread.start()
+
+# --- MAIN ---
 if __name__ == "__main__":
-    app.run(port=5001)
+    # Khởi tạo SocketModeClient
+    socket_client = SocketModeClient(
+        app_token=slack_app_token,
+        web_client=slack_web_client
+    )
+
+    # Đăng ký hàm xử lý sự kiện
+    socket_client.socket_mode_request_listeners.append(process_slack_event)
+
+    print("⚡️ AI Agent đang kết nối với Slack qua Socket Mode (WebSocket)...")
+    
+    # Kết nối và duy trì script (blocking)
+    socket_client.connect()
+    
+    # Giữ script luôn chạy
+    from threading import Event
+    Event().wait()

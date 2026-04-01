@@ -189,8 +189,9 @@ When given a task, route it to the correct app:
 4. MAKE CHANGES: Edit files within the correct app directory
 5. VERIFY: Run linter/diagnostics to check for errors
 6. TEST: If applicable, run npm test in the app directory
-7. COMMIT: Use git commands in the app directory
-8. PUSH: Push changes to remote repository
+7. REPORT: Create a report about what just did 
+8. COMMIT: Use git commands in the app directory
+9. PUSH: Push changes to remote repository
 ```
 
 ---
