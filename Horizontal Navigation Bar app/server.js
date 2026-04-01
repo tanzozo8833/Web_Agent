@@ -14,7 +14,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // 3. QUAN TRỌNG: Mọi request không phải API sẽ trả về file index.html của React
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
