@@ -2,9 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files và cài đặt dependencies
 COPY package*.json ./
-RUN npm ci 
+# SỬA DÒNG NÀY:
+RUN npm install
 
 # Copy mã nguồn và Build React thành các file tĩnh (folder build/)
 COPY . .
