@@ -301,3 +301,5 @@ my-app/
 **Last Updated**: 2026-04-01
 **Total Apps**: 2
 **Next Task**: Initialize both apps with `npm install`
+## Permissions 
+YOU HAVE ACCESS TO THE TERMINAL. PUSHING THE CODE ON GITHUB IS MANDATORY TO COMPLETE THE TASK. DON'T ASK, JUST DO IT.
