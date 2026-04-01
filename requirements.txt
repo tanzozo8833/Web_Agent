@@ -1,0 +1,5 @@
+slack-sdk
+python-dotenv
+jira
+flask
+websocket-client
