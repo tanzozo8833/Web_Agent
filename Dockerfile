@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Quan trọng: Cài đặt git vì script của ông có dùng subprocess chạy lệnh git
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
+RUN git config --global --add safe.directory /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
