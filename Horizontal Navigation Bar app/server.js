@@ -14,10 +14,9 @@ app.get("/api/health", (req, res) => {
 });
 
 // 3. QUAN TRỌNG: Mọi request không phải API sẽ trả về file index.html của React
-app.get("/*", (req, res) => {
+app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
-
 // 4. Sử dụng cổng từ biến môi trường (Render dùng 10000)
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {

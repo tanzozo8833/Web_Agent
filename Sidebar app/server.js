@@ -13,7 +13,7 @@ app.get("/api/status", (req, res) => {
 });
 
 // Trả về index.html cho các route của React (phù hợp với React Router)
-app.get("/*", (req, res) => {
+app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
