@@ -16,3 +16,6 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+build/
+.github
+**/node_modules/

@@ -1,22 +1,17 @@
-# Stage 1: Build React App
-FROM node:18-alpine AS build
+FROM python:3.10-slim
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# Quan trọng: Cài đặt git vì script của ông có dùng subprocess chạy lệnh git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy toàn bộ nhưng nhớ dùng .dockerignore (tí t nói ở dưới)
 COPY . .
-RUN npm run build
 
-# Stage 2: Chạy Production Server (Express)
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=build /app/build ./build
-COPY --from=build /app/server.js ./
-COPY --from=build /app/package*.json ./
-RUN npm install --production
-
-# Môi trường
-ENV NODE_ENV=production
-ENV PORT=10000
+# Mở cổng 10000 (Render thích cổng này hơn 80 cho gói Free)
 EXPOSE 10000
 
-CMD ["node", "server.js"]
+# SỬA ĐƯỜNG DẪN Ở ĐÂY:
+CMD ["python", "main.py"]

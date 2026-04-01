@@ -12,6 +12,17 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 
 # Jira SDK
 from jira import JIRA
+from flask import Flask # Nhớ import thêm Flask
+
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def health_check():
+    return "AI Agent is Online!", 200
+
+def run_flask():
+    # Render yêu cầu lắng nghe port 10000
+    flask_app.run(host='0.0.0.0', port=10000)
 
 # Tải biến môi trường
 load_dotenv()
@@ -160,20 +171,20 @@ def process_slack_event(client: SocketModeClient, req: SocketModeRequest):
 
 # --- MAIN ---
 if __name__ == "__main__":
-    # Khởi tạo SocketModeClient
+    # 1. Chạy Flask Health Check ở một luồng riêng
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # 2. Khởi tạo và chạy Socket Mode Client
     socket_client = SocketModeClient(
         app_token=slack_app_token,
         web_client=slack_web_client
     )
-
-    # Đăng ký hàm xử lý sự kiện
     socket_client.socket_mode_request_listeners.append(process_slack_event)
 
     print("⚡️ AI Agent đang kết nối với Slack qua Socket Mode (WebSocket)...")
+    print("🏥 Health Check server đang chạy tại port 10000...")
     
-    # Kết nối và duy trì script (blocking)
     socket_client.connect()
     
-    # Giữ script luôn chạy
     from threading import Event
     Event().wait()
