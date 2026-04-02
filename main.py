@@ -42,33 +42,33 @@ jira = JIRA(
 def run_opencode_workflow(instruction):
     branch_name = f"ai-task-{uuid.uuid4().hex[:6]}"
     github_token = os.getenv("GITHUB_TOKEN")
-    repo_url = "github.com/tanzozo8833/Web_Agent.git" # Sửa đúng repo của ông
+    repo_url = "github.com/tanzozo8833/Web_Agent.git" 
     remote_url = f"https://{github_token}@{repo_url}"
 
     try:
-        # Kiểm tra xem folder .git có tồn tại không, nếu không thì init mới
+        # 1. Khởi tạo/Cấu hình Git môi trường
         if not os.path.exists(".git"):
-            print("🚀 Đang khởi tạo Repo Git mới trong Container...")
+            print("🚀 Đang khởi tạo Repo Git mới...")
             subprocess.run("git init", shell=True)
             subprocess.run(f"git remote add origin {remote_url}", shell=True)
         else:
             subprocess.run(f"git remote set-url origin {remote_url}", shell=True)
 
-        # Cấu hình lại danh tính cho chắc chắn
         subprocess.run('git config user.email "bot-agent@render.com"', shell=True)
         subprocess.run('git config user.name "Tan-AI-Agent"', shell=True)
         subprocess.run("git config --global --add safe.directory /app", shell=True)
 
-        # Kéo code mới nhất về để đồng bộ
+        # 2. Đồng bộ code mới nhất
         print("📡 Đang kéo code từ GitHub...")
         subprocess.run("git fetch origin main --depth=1", shell=True)
-        subprocess.run("git reset --hard origin/main", shell=True) # Ép local giống hệt GitHub
+        subprocess.run("git reset --hard origin/main", shell=True) 
         subprocess.run("git checkout main", shell=True)
         
-        # Bây giờ mới tạo nhánh mới để sửa code
+        # 3. Tạo nhánh phụ để AI làm việc
         print(f"🌿 Tạo nhánh mới: {branch_name}")
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
-        # Thêm yêu cầu OpenCode báo cáo chi tiết ở cuối
+
+        # 4. Chuẩn bị yêu cầu cho OpenCode (Chỉ bắt AI sửa và push nhánh phụ)
         reporting_template = (
             "\n\nSau khi hoàn thành, hãy in một đoạn tóm tắt cuối cùng theo đúng định dạng sau:\n"
             "[REPORT]\n"
@@ -79,21 +79,49 @@ def run_opencode_workflow(instruction):
             "[/REPORT]"
         )
         
-        full_msg = f"{instruction}. Sau khi làm xong, hãy git add, commit 'fix: update' và và git push origin {branch_name}. {reporting_template} sau đó merge vào origin main và push lên origin main luôn"
+        # Rút gọn instruction: Để Python lo việc Merge
+        full_msg = f"{instruction}. Sau khi sửa xong, hãy git add, git commit -m 'fix: update' và git push origin {branch_name}. {reporting_template}"
         model_id = "google/gemini-3-flash-preview" 
 
         command = f'opencode run -m {model_id} "{full_msg}"'
+        print(f"🤖 Đang gọi OpenCode thực hiện task...")
+        
         result = subprocess.run(
             command, 
             capture_output=True, 
             text=True, shell=True, 
             encoding="utf-8", 
-            errors="replace")
+            errors="replace"
+        )
         
-        # Trích xuất thông tin từ [REPORT] ... [/REPORT]
         stdout_content = result.stdout
-        print("STDOUT của OpenCode:", result.stdout)
-        print("STDERR của OpenCode:", result.stderr)
+        print("STDOUT của OpenCode:", stdout_content)
+
+        # 5. LOGIC TỰ ĐỘNG MERGE (Nếu OpenCode chạy thành công)
+        if result.returncode == 0 and "Options:" not in stdout_content:
+            print(f"✅ OpenCode hoàn tất nhánh {branch_name}. Bắt đầu Merge vào Main...")
+            
+            # Danh sách lệnh Merge thực hiện bởi Python
+            merge_steps = [
+                "git checkout main",             # Về main
+                "git pull origin main",          # Cập nhật main mới nhất
+                f"git merge {branch_name}",      # Gộp nhánh vừa sửa vào main
+                "git push origin main"           # Đẩy main lên GitHub
+            ]
+            
+            for step in merge_steps:
+                print(f"Executing: {step}")
+                m_res = subprocess.run(step, shell=True, capture_output=True, text=True)
+                if m_res.returncode != 0:
+                    print(f"❌ Lỗi tại bước: {step}\n{m_res.stderr}")
+                    # Nếu merge lỗi (xung đột), vẫn trả về success=False để báo Slack
+                    return {"success": False, "error": f"Merge Error at {step}: {m_res.stderr}", "branch": branch_name}
+
+            print("🎉 Đã Merge và Push lên Main thành công!")
+        else:
+            return {"success": False, "stdout": stdout_content, "stderr": result.stderr, "branch": branch_name}
+
+        # 6. Trích xuất Report để log Jira
         report_data = {}
         if "[REPORT]" in stdout_content:
             report_section = stdout_content.split("[REPORT]")[1].split("[/REPORT]")[0].strip()
@@ -103,12 +131,14 @@ def run_opencode_workflow(instruction):
                     report_data[key.strip().lower()] = value.strip()
 
         return {
-            "success": result.returncode == 0 and "Options:" not in stdout_content,
+            "success": True,
             "stdout": stdout_content,
-            "branch": branch_name,
-            "report": report_data # Chứa thông tin Agent tự phân tích
+            "branch": "main", # Trả về main vì đã merge xong
+            "report": report_data 
         }
+
     except Exception as e:
+        print(f"💥 Lỗi hệ thống: {str(e)}")
         return {"success": False, "error": str(e), "branch": branch_name}
 
 # --- JIRA: Ghi Log Ticket ---
