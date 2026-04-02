@@ -153,31 +153,47 @@ def log_to_jira(instruction, res):
     jira.add_comment(new_issue, log_content)
     return new_issue.key
 
-# --- SLACK: Xử lý Task chạy ngầm ---
 def handle_task_in_background(event):
     channel_id = event.get("channel")
     raw_text = event.get("text")
-    user_query = raw_text.split(">")[-1].strip()
+    
+    try:
+        user_query = raw_text.split(">")[-1].strip()
+    except:
+        user_query = raw_text.strip()
     
     if not user_query: return
 
-    # Gửi thông báo bắt đầu qua WebClient
-    slack_web_client.chat_postMessage(channel=channel_id, text=f"🚀 *Socket Mode:* Đang xử lý yêu cầu: *{user_query}*...")
+    slack_web_client.chat_postMessage(channel=channel_id, text=f"🚀 *Socket Mode:* Đang xử lý: *{user_query}*...")
     
-    res = run_opencode_workflow(user_query)
+    try:
+        # Chạy logic chính
+        res = run_opencode_workflow(user_query)
+        
+        print(f"--- DEBUG RESULT ---")
+        print(res)
+        print(f"--------------------")
 
-    if res.get("success"):
-        try:
-            jira_key = log_to_jira(user_query, res)
-            slack_web_client.chat_postMessage(
-                channel=channel_id, 
-                text=f"✅ Hoàn tất! Đã tạo ticket *{jira_key}* và push lên nhánh *{res['branch']}*."
-            )
-        except Exception as e:
-            slack_web_client.chat_postMessage(channel=channel_id, text=f"⚠️ Code đã sửa nhưng lỗi log Jira: {str(e)}")
-    else:
-        error_info = res.get("error") or res.get("stdout")
-        slack_web_client.chat_postMessage(channel=channel_id, text=f"❌ OpenCode gặp lỗi: \n`{error_info[:500]}...`")
+        if res.get("success"):
+            try:
+                jira_key = log_to_jira(user_query, res)
+                msg = f"✅ Hoàn tất! Đã tạo ticket *{jira_key}* và push lên nhánh *{res.get('branch')}*."
+                slack_web_client.chat_postMessage(channel=channel_id, text=msg)
+            except Exception as e_jira:
+                slack_web_client.chat_postMessage(channel=channel_id, text=f"⚠️ Sửa code OK nhưng lỗi Jira: `{str(e_jira)}`")
+        else:
+            # Báo lỗi chi tiết lên Slack
+            stderr = res.get("stderr", "")
+            error_msg = res.get("error", "")
+            stdout = res.get("stdout", "")
+            
+            full_error = "❌ *OpenCode thất bại:*\n"
+            if error_msg: full_error += f"*Lỗi:* `{error_msg}`\n"
+            if stderr: full_error += f"*Stderr:*\n{stderr}\n"
+            if stdout: full_error += f"*Stdout:*\n{stdout}\n"
+            slack_web_client.chat_postMessage(channel=channel_id, text=full_error)
+    except Exception as e:
+        slack_web_client.chat_postMessage(channel=channel_id, text=f"❌ *Lỗi hệ thống:* `{str(e)}`")
 
 # --- SOCKET MODE LISTENER ---
 def process_slack_event(client: SocketModeClient, req: SocketModeRequest):
