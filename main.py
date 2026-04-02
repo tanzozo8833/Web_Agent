@@ -41,10 +41,31 @@ jira = JIRA(
 # --- WORKFLOW: Chạy OpenCode ---
 def run_opencode_workflow(instruction):
     branch_name = f"ai-task-{uuid.uuid4().hex[:6]}"
+    github_token = os.getenv("GITHUB_TOKEN")
+    repo_url = "github.com/tanzozo8833/Web_Agent.git" # Sửa đúng repo của ông
+    remote_url = f"https://{github_token}@{repo_url}"
+
     try:
-        subprocess.run("git checkout main", shell=True)
-        subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
+        # Kiểm tra xem folder .git có tồn tại không, nếu không thì init mới
+        if not os.path.exists(".git"):
+            print("🚀 Đang khởi tạo Repo Git mới trong Container...")
+            subprocess.run("git init", shell=True)
+            subprocess.run(f"git remote add origin {remote_url}", shell=True)
+        else:
+            subprocess.run(f"git remote set-url origin {remote_url}", shell=True)
+
+        # Cấu hình lại danh tính cho chắc chắn
+        subprocess.run('git config user.email "bot-agent@render.com"', shell=True)
+        subprocess.run('git config user.name "Tan-AI-Agent"', shell=True)
+        subprocess.run("git config --global --add safe.directory /app", shell=True)
+
+        # Kéo code mới nhất về để đồng bộ
+        subprocess.run("git fetch origin main", shell=True)
+        # Ép nhánh hiện tại thành main và khớp với origin
+        subprocess.run("git checkout -B main origin/main", shell=True)
         
+        # Bây giờ mới tạo nhánh mới để sửa code
+        subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         # Thêm yêu cầu OpenCode báo cáo chi tiết ở cuối
         reporting_template = (
             "\n\nSau khi hoàn thành, hãy in một đoạn tóm tắt cuối cùng theo đúng định dạng sau:\n"
