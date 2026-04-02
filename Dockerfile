@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 # 2. Cấu hình bảo mật Git cho Docker
 RUN git config --global --add safe.directory /app
 
+RUN npm install -g opencode-ai
+
 # 3. THÊM DÒNG NÀY: Cấu hình danh tính để Bot có thể thực hiện lệnh 'git commit'
 RUN git config --global user.email "bot-agent@render.com" && \
     git config --global user.name "Tan-AI-Agent"

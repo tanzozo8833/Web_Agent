@@ -3,6 +3,5 @@ python-dotenv
 jira
 flask
 websocket-client
-opencode-ai
 gunicorn          
 requests          
