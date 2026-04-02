@@ -79,7 +79,7 @@ def run_opencode_workflow(instruction):
             "[/REPORT]"
         )
         
-        full_msg = f"{instruction}. Sau khi làm xong, hãy git add, commit 'fix: update' và và git push origin {branch_name}. {reporting_template}"
+        full_msg = f"{instruction}. Sau khi làm xong, hãy git add, commit 'fix: update' và và git push origin {branch_name}. {reporting_template} sau đó merge vào origin main và push lên origin main luôn"
         model_id = "google/gemini-3-flash-preview" 
 
         command = f'opencode run -m {model_id} "{full_msg}"'
