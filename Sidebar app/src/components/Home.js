@@ -5,16 +5,16 @@ const Home = () => {
     <div style={{ padding: "20px" }}>
       <h1>Home Page</h1>
 
-      <button style={{ backgroundColor: "blue", color: "white", padding: "10px", marginRight: "10px" }}>
-        Blue Button
+      <button style={{ backgroundColor: "purple", color: "white", padding: "10px", marginRight: "10px" }}>
+        Purple Button
       </button>
 
-      <button style={{ backgroundColor: "green", color: "white", padding: "10px", marginRight: "10px" }}>
-        Green Button
+      <button style={{ backgroundColor: "purple", color: "white", padding: "10px", marginRight: "10px" }}>
+        Purple Button
       </button>
 
-      <button style={{ backgroundColor: "red", color: "white", padding: "10px" }}>
-        Red Button
+      <button style={{ backgroundColor: "purple", color: "white", padding: "10px" }}>
+        Purple Button
       </button>
     </div>
   );
