@@ -4,3 +4,5 @@ jira
 flask
 websocket-client
 opencode-ai
+gunicorn          
+requests          
