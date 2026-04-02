@@ -60,11 +60,13 @@ def run_opencode_workflow(instruction):
         subprocess.run("git config --global --add safe.directory /app", shell=True)
 
         # Kéo code mới nhất về để đồng bộ
-        subprocess.run("git fetch origin main", shell=True)
-        # Ép nhánh hiện tại thành main và khớp với origin
-        subprocess.run("git checkout -B main origin/main", shell=True)
+        print("📡 Đang kéo code từ GitHub...")
+        subprocess.run("git fetch origin main --depth=1", shell=True)
+        subprocess.run("git reset --hard origin/main", shell=True) # Ép local giống hệt GitHub
+        subprocess.run("git checkout main", shell=True)
         
         # Bây giờ mới tạo nhánh mới để sửa code
+        print(f"🌿 Tạo nhánh mới: {branch_name}")
         subprocess.run(f"git checkout -b {branch_name}", shell=True, check=True)
         # Thêm yêu cầu OpenCode báo cáo chi tiết ở cuối
         reporting_template = (
@@ -90,6 +92,8 @@ def run_opencode_workflow(instruction):
         
         # Trích xuất thông tin từ [REPORT] ... [/REPORT]
         stdout_content = result.stdout
+        print("STDOUT của OpenCode:", result.stdout)
+        print("STDERR của OpenCode:", result.stderr)
         report_data = {}
         if "[REPORT]" in stdout_content:
             report_section = stdout_content.split("[REPORT]")[1].split("[/REPORT]")[0].strip()
